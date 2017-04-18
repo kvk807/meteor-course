@@ -1,0 +1,56 @@
+import React from 'react';
+import { Meteor } from 'meteor/meteor';
+import { Tracker } from 'meteor/tracker';
+import { Session } from 'meteor/session';
+import FlipMove from 'react-flip-move';
+
+import { Links } from '../api/links';
+import LinksListItem from './LinksListItem';
+
+export default class LinksList extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      allLinks: []
+    };
+  }
+
+  componentDidMount() {
+    console.log('did mount:  LinksList');
+    this.linksTracker = Tracker.autorun(() => {
+      Meteor.subscribe('links');
+      const allLinks = Links.find({
+        visible: Session.get('showVisible')
+      }).fetch();
+      this.setState({ allLinks });
+    });
+  }
+  componentWillUnmount() {
+    console.log('will unmount: LinksList');
+    this.linksTracker.stop();
+  }
+
+  renderLinksListItems() {
+    if ( this.state.allLinks.length === 0 ) {
+      return (
+        <div className="item">
+          <p className="item__status-message">You have no links to display.</p>
+        </div>
+      );
+    }
+    return this.state.allLinks.map((link) => {
+      const shortUrl = Meteor.absoluteUrl(link._id);
+      return <LinksListItem key={link._id} shortUrl = {shortUrl} {...link}/>;
+    });
+  }
+
+  render() {
+    return (
+      <div>
+        <FlipMove maintainContainerHeight={true} easing="cubic-bezier(0,0.7,0.8,0.1)">
+          {this.renderLinksListItems()}
+        </FlipMove>
+      </div>
+    );
+  }
+};
